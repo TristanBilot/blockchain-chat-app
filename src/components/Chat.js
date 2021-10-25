@@ -1,6 +1,15 @@
+import Web3 from 'web3';
 import React, { Component } from 'react';
+import ChatApp from '../abis/ChatApp.json'
 
 class Chat extends Component {
+
+    async componentWillMount() {
+        console.log(window.ethereum)
+        await this.loadWeb3()
+        await this.loadBlockchainData()
+        await this.listenToMessages()
+      }
 
     constructor(props) {
         super(props)
@@ -15,8 +24,59 @@ class Chat extends Component {
             }
         ]
         this.state = {
-            chats: chats
+            chats: chats,
+            inputValue: ''
         }
+    }
+
+    async loadWeb3() {
+        if (window.ethereum) {
+    
+          // Need to put ws:// instead of http:// because of web sockets.
+          // Web sockets are mandatory to listen to events.
+          window.web3 = new Web3(Web3.providers.WebsocketProvider("ws://localhost:7545"))
+          await window.ethereum.enable()
+        }
+        else if (window.web3) {
+          window.web3 = new Web3(window.web3.currentProvider)
+        }
+        else {
+          window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
+        }
+      }
+
+    async loadBlockchainData()  {
+        const web3 = window.web3
+    
+        const accounts = await web3.eth.getAccounts()
+        this.setState({ account: accounts[0] })
+    
+        const ethBalance = await web3.eth.getBalance(this.state.account)
+        this.setState({ ethBalance })
+    
+        // Load smart contract
+        const networkId =  await web3.eth.net.getId()
+        const chatAppData = ChatApp.networks[networkId]
+        const abi = ChatApp.abi
+        if(chatAppData) {
+          const chatContract = new web3.eth.Contract(abi, chatAppData.address)
+          this.setState({ chatContract: chatContract })
+        }
+        else {
+            window.alert('Chat contract not deployed to detected network.')
+        }
+    }
+
+    async func(event){
+        const message = event.returnValues.message
+        this.didReceiveMessage(message)
+    }
+
+    async listenToMessages() {
+        var binded = this.func.bind(this)
+        this.state.chatContract.events.messageSentEvent({})
+        .on('data', binded)
+        .on('error', console.error);
     }
 
     getMessagesAsDivs() {
@@ -46,6 +106,16 @@ class Chat extends Component {
         })
     }
 
+    async didSendMessage(message) {
+        await this.state.chatContract.methods.sendMsg(message).send({ from: this.state.account})
+    }
+
+    updateInputValue(evt) {
+        this.setState({
+          inputValue: evt.target.value
+        });
+      }
+
     render() {
         return (
         <body>
@@ -62,9 +132,9 @@ class Chat extends Component {
                 </section>
                 <div class="footer-chat">
                     <i class="icon fa fa-smile-o clickable" style={{fontSize: "25pt"}} aria-hidden="true"></i>
-                    <input type="text" class="write-message" placeholder="Type your message here"></input>
+                    <input value={this.state.inputValue} onChange={evt => this.updateInputValue(evt)} type="text" class="write-message" placeholder="Type your message here"></input>
                     <i class="icon send fa fa-paper-plane-o clickable" aria-hidden="true"></i>
-                    <button  class="btn btn-success send-btn" onClick={() => this.didReceiveMessage("test")}>Send</button>
+                    <button class="btn btn-success send-btn" onClick={() => this.didSendMessage(this.state.inputValue)}>Send</button>
                 </div>
                 </div>
         </body>)
