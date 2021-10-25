@@ -1,6 +1,7 @@
 import Web3 from 'web3';
 import React, { Component } from 'react';
 import ChatApp from '../abis/ChatApp.json'
+import mainLogo from './arrow.png'
 
 class Chat extends Component {
 
@@ -25,7 +26,10 @@ class Chat extends Component {
         ]
         this.state = {
             chats: chats,
-            inputValue: ''
+            inputValue: '',
+            accounts: [],
+            account: '',
+            otherAccount: ''
         }
     }
 
@@ -49,7 +53,12 @@ class Chat extends Component {
         const web3 = window.web3
     
         const accounts = await web3.eth.getAccounts()
-        this.setState({ account: accounts[0] })
+        this.setState({ 
+            accounts: accounts,
+            account: accounts[0],
+            otherAccount: accounts[1]
+         })
+        console.log(accounts)
     
         const ethBalance = await web3.eth.getBalance(this.state.account)
         this.setState({ ethBalance })
@@ -74,12 +83,12 @@ class Chat extends Component {
         .on('error', console.error);
     }
 
-    didReceiveMessage(message) {
+    didReceiveMessage(message, isResponse) {
         let chats = this.state.chats
         chats.push(
             {
                 msg: message,
-                response: true
+                response: isResponse
             }
         )
         this.setState({
@@ -90,7 +99,12 @@ class Chat extends Component {
 
     async didReceiveMessageBinded(event){
         const message = event.returnValues.message
-        this.didReceiveMessage(message)
+        if (event.returnValues.from === this.state.account){
+            this.didReceiveMessage(message, true)
+        }
+        if (event.returnValues.to === this.state.account){
+            this.didReceiveMessage(message, false)
+        }
     }
 
     getMessagesAsDivs() {
@@ -107,8 +121,22 @@ class Chat extends Component {
         return chatDivs.reverse()
     }
 
+    getToggleAdresses(isOtherAccount) {
+        var addresses = []
+        for (var i = 0; i < this.state.accounts.length; i++) {
+            let account = this.state.accounts[i]
+            if (isOtherAccount && account == this.state.otherAccount
+                || !isOtherAccount && account == this.state.account)
+                addresses.push(<option value={account} selected>{account}</option>)
+            else {
+                addresses.push(<option value={account}>{account}</option>)
+            }
+        }
+        return addresses
+    }
+
     async didSendMessage(message) {
-        await this.state.chatContract.methods.sendMsg(message).send({ from: this.state.account})
+        await this.state.chatContract.methods.sendMsg(this.state.otherAccount, message).send({ from: this.state.account })
     }
 
     updateInputValue(evt) {
@@ -117,15 +145,36 @@ class Chat extends Component {
         });
       }
 
+    updateAddressSelect(newValue, isOtherAccount) {
+        if (isOtherAccount) {
+            this.setState({
+                otherAccount: newValue
+            })
+        }
+        else {
+            this.setState({
+                account: newValue
+            })
+        }
+    }
+
     render() {
         return (
         <body>
             <div class="container">
                 <section class="chat">
                     <div class="header-chat">
-                    <i class="icon fa fa-user-o" aria-hidden="true"></i>
-                    <p class="name">Address</p>
-                    <i class="icon clickable fa fa-ellipsis-h right" aria-hidden="true"></i>
+                        <div class="left">
+                            <img src={mainLogo} class="arrow"/>
+                            <select class="custom-select" onChange={e => this.updateAddressSelect(e.target.value, false)} >
+                                { this.getToggleAdresses(false) }
+                            </select>     
+                        </div>
+                        <div class="right">
+                            <select class="custom-select" onChange={e => this.updateAddressSelect(e.target.value, true)} >
+                                { this.getToggleAdresses(true) }
+                            </select>  
+                        </div>
                     </div>
                     <div class="messages-chat">
                     { this.getMessagesAsDivs() }
