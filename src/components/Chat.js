@@ -67,16 +67,30 @@ class Chat extends Component {
         }
     }
 
-    async func(event){
-        const message = event.returnValues.message
-        this.didReceiveMessage(message)
-    }
-
     async listenToMessages() {
-        var binded = this.func.bind(this)
+        var binded = this.didReceiveMessageBinded.bind(this)
         this.state.chatContract.events.messageSentEvent({})
         .on('data', binded)
         .on('error', console.error);
+    }
+
+    didReceiveMessage(message) {
+        let chats = this.state.chats
+        chats.push(
+            {
+                msg: message,
+                response: true
+            }
+        )
+        this.setState({
+            chats: chats,
+            inputValue: ''
+        })
+    }
+
+    async didReceiveMessageBinded(event){
+        const message = event.returnValues.message
+        this.didReceiveMessage(message)
     }
 
     getMessagesAsDivs() {
@@ -91,19 +105,6 @@ class Chat extends Component {
             </div>
         )
         return chatDivs.reverse()
-    }
-
-    didReceiveMessage(message) {
-        let chats = this.state.chats
-        chats.push(
-            {
-                msg: message,
-                response: true
-            }
-        )
-        this.setState({
-            chats: chats
-        })
     }
 
     async didSendMessage(message) {
