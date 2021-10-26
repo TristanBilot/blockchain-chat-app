@@ -70,7 +70,7 @@ body {
   
   .chat .messages-chat .text {
     /* margin: 0 35px; */
-    background-color: #f6f6f6;
+    background-color: #E2F0D9;
     padding: 15px;
     border-radius: 12px;
   }
@@ -217,9 +217,9 @@ body {
 }
 
 .sender-block {
-    background-color: #E2F0D9;
+    background-color: #e3effd;
 }
 
 .recip-block {
-    background-color: #DAE3F3;
+    background-color: #E2F0D9;
 }

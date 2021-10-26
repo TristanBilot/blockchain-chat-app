@@ -10,20 +10,18 @@ class Chat extends Component {
         await this.loadWeb3()
         await this.loadBlockchainData()
         await this.listenToMessages()
-        await this.updateNbTransactions()
-        await this.updateBalances()
-        await this.getBlocks()
+        await this.updateUIData()
       }
 
     constructor(props) {
         super(props)
         let chats = [
             {
-                msg: "What are you doing tonight ? Want to go take a drink ?",
+                msg: "This is a blockchain demo, try to tap in!",
                 response: true
             },
             {
-                msg: "Hey Megan ! It's been a while 😃",
+                msg: "Enter \"send_ether: 0.0001\" to send some tokens to your recipient 😃",
                 response: false
             }
         ]
@@ -32,6 +30,7 @@ class Chat extends Component {
             inputValue: '',
             accounts: [],
             account: '',
+            nbBlocks: 0,
             otherAccount: '',
             accountNbTransactions: 0,
             otherAccountNbTransactions: 0,
@@ -170,6 +169,7 @@ class Chat extends Component {
     async updateUIData() {
         this.updateNbTransactions()
         this.updateBalances()
+        this.getBlocks()
     }
 
     async updateNbTransactions() {
@@ -190,30 +190,18 @@ class Chat extends Component {
         })
     }
 
-    callback(e, f) {
-        console.log(f)
-    }
-
     async getBlocks() {
         const latest = await window.web3.eth.getBlockNumber()
-        const batch = new window.web3.eth.BatchRequest()
-
-        for (var i = 0; i < latest; i++) {
-            batch.add(
-                window.web3.eth.getBlock.request(i, this.callback)
-            )
-        }
-        batch.execute()
-        // console.log(latest)
-        // const blockNumbers = range(latest - n, latest + 1, 1)
+        this.setState({
+            nbBlocks: latest
+        })
         // const batch = new window.web3.eth.BatchRequest()
 
-        // blockNumbers.forEach((blockNumber) => {
-        // batch.add(
-        //     window.web3.eth.getBlock.request(blockNumber, storeLocalCopy)
-        // )
-        // })
-
+        // for (var i = 0; i < latest; i++) {
+        //     batch.add(
+        //         window.web3.eth.getBlock.request(i, this.callback)
+        //     )
+        // }
         // batch.execute()
     }
 
@@ -250,6 +238,7 @@ class Chat extends Component {
                     </div>
                     <div class="col-5 right-block">
                         <h3>Blockchain state</h3>
+                        <p>Number of blocks: { this.state.nbBlocks }</p>
                         <div class="sender-block blockchain-block">
                             <p><b>Sender address:</b></p>
                             <p>{ this.state.account }</p>
