@@ -6,10 +6,10 @@ import mainLogo from './arrow.png'
 class Chat extends Component {
 
     async componentWillMount() {
-        console.log(window.ethereum)
         await this.loadWeb3()
         await this.loadBlockchainData()
         await this.listenToMessages()
+        await this.listenToEther()
         await this.updateUIData()
       }
 
@@ -39,6 +39,7 @@ class Chat extends Component {
         }
     }
 
+    // ------- init ------
     async loadWeb3() {
         if (window.ethereum) {
     
@@ -82,11 +83,41 @@ class Chat extends Component {
         }
     }
 
+    // ------- listeners ------
     async listenToMessages() {
         var binded = this.didReceiveMessageBinded.bind(this)
         this.state.chatContract.events.messageSentEvent({})
         .on('data', binded)
         .on('error', console.error);
+    }
+
+    async listenToEther() {
+        var binded = this.didReceiveEtherBinded.bind(this)
+        this.state.chatContract.events.etherSentEvent({})
+        .on('data', binded)
+        .on('error', console.error);
+    }
+
+    // ------- handlers ------
+    async didReceiveMessageBinded(event){
+        const message = event.returnValues.message
+        if (event.returnValues.from === this.state.account){
+            this.didReceiveMessage(message, true)
+        }
+        if (event.returnValues.to === this.state.account){
+            this.didReceiveMessage(message, false)
+        }
+        await this.updateUIData()
+    }
+
+    async didReceiveEtherBinded(event){
+        if (event.returnValues.sent === false){
+            console.log('error')
+        }
+        else {
+            console.log('success')
+        }
+        await this.updateUIData()
     }
 
     didReceiveMessage(message, isResponse) {
@@ -103,17 +134,89 @@ class Chat extends Component {
         })
     }
 
-    async didReceiveMessageBinded(event){
-        const message = event.returnValues.message
-        if (event.returnValues.from === this.state.account){
-            this.didReceiveMessage(message, true)
+    async didSendMessage(message) {
+        const didSendEther = await this.sendEtherIfAsked()
+        
+        if (!didSendEther) {
+            await this.state.chatContract.methods.sendMsg(this.state.otherAccount, message).send({ from: this.state.account })
         }
-        if (event.returnValues.to === this.state.account){
-            this.didReceiveMessage(message, false)
-        }
-        await this.updateUIData()
     }
 
+    async sendEtherIfAsked() {
+        let splitted = this.state.inputValue.split(':')
+        if (splitted.length != 2)
+            return false
+
+        if (splitted[0] == "send_ether" && this.isNumeric(splitted[1])) {
+            var asWei = parseFloat(splitted[1]) * 1e18
+            await this.state.chatContract.methods.sendEther(this.state.otherAccount).send({
+                from: this.state.account,
+                value: asWei
+            })
+            return true
+        }
+        return false
+    }
+
+    // ------- UI state updaters ------
+    async updateUIData() {
+        this.updateNbTransactions()
+        this.updateBalances()
+        this.updateBlocks()
+    }
+
+    updateInputValue(evt) {
+        this.setState({
+          inputValue: evt.target.value
+        });
+      }
+
+    updateAddressSelect(newValue, isOtherAccount) {
+        if (isOtherAccount) {
+            this.setState({
+                otherAccount: newValue
+            })
+        }
+        else {
+            this.setState({
+                account: newValue
+            })
+        }
+        this.updateUIData()
+    }
+
+    async updateNbTransactions() {
+        let accountNbTransactions = await window.web3.eth.getTransactionCount(this.state.account)
+        let otherAccountNbTransactions = await window.web3.eth.getTransactionCount(this.state.otherAccount)
+        this.setState({
+            accountNbTransactions: accountNbTransactions,
+            otherAccountNbTransactions: otherAccountNbTransactions
+        })
+    }
+
+    async updateBalances() {
+        let accountBalance = await window.web3.eth.getBalance(this.state.account)
+        let otherAccountBalance = await window.web3.eth.getBalance(this.state.otherAccount)
+        this.setState({
+            accountBalance: window.web3.utils.fromWei(accountBalance, 'ether'),
+            otherAccountBalance: window.web3.utils.fromWei(otherAccountBalance, 'ether')
+        })
+    }
+
+    async updateBlocks() {
+        const latest = await window.web3.eth.getBlockNumber()
+        this.setState({
+            nbBlocks: latest
+        })
+    }
+
+    isNumeric(str) {
+        if (typeof str != "string") return false
+        return !isNaN(str) &&
+               !isNaN(parseFloat(str))
+      }
+
+    // ------- UI ------
     getMessagesAsDivs() {
         let chatDivs = this.state.chats.map(x => x.response ? 
             <div class="message text-only">
@@ -140,69 +243,6 @@ class Chat extends Component {
             }
         }
         return addresses
-    }
-
-    async didSendMessage(message) {
-        await this.state.chatContract.methods.sendMsg(this.state.otherAccount, message).send({ from: this.state.account })
-    }
-
-    updateInputValue(evt) {
-        this.setState({
-          inputValue: evt.target.value
-        });
-      }
-
-    updateAddressSelect(newValue, isOtherAccount) {
-        if (isOtherAccount) {
-            this.setState({
-                otherAccount: newValue
-            })
-        }
-        else {
-            this.setState({
-                account: newValue
-            })
-        }
-        this.updateUIData()
-    }
-
-    async updateUIData() {
-        this.updateNbTransactions()
-        this.updateBalances()
-        this.getBlocks()
-    }
-
-    async updateNbTransactions() {
-        let accountNbTransactions = await window.web3.eth.getTransactionCount(this.state.account)
-        let otherAccountNbTransactions = await window.web3.eth.getTransactionCount(this.state.otherAccount)
-        this.setState({
-            accountNbTransactions: accountNbTransactions,
-            otherAccountNbTransactions: otherAccountNbTransactions
-        })
-    }
-
-    async updateBalances() {
-        let accountBalance = await window.web3.eth.getBalance(this.state.account)
-        let otherAccountBalance = await window.web3.eth.getBalance(this.state.otherAccount)
-        this.setState({
-            accountBalance: window.web3.utils.fromWei(accountBalance, 'ether'),
-            otherAccountBalance: window.web3.utils.fromWei(otherAccountBalance, 'ether')
-        })
-    }
-
-    async getBlocks() {
-        const latest = await window.web3.eth.getBlockNumber()
-        this.setState({
-            nbBlocks: latest
-        })
-        // const batch = new window.web3.eth.BatchRequest()
-
-        // for (var i = 0; i < latest; i++) {
-        //     batch.add(
-        //         window.web3.eth.getBlock.request(i, this.callback)
-        //     )
-        // }
-        // batch.execute()
     }
 
     render() {
