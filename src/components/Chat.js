@@ -10,6 +10,8 @@ class Chat extends Component {
         await this.loadBlockchainData()
         await this.listenToMessages()
         await this.listenToEther()
+        await this.listenToFetchAllMsg()
+        await this.fetchAllMsg()
         await this.updateUIData()
       }
 
@@ -26,8 +28,8 @@ class Chat extends Component {
             }
         ]
         this.state = {
-            fixedChats: [...chats],
-            chats: chats,
+            fixedChats: chats,
+            chats: [],
             inputValue: '',
             accounts: [],
             account: '',
@@ -103,6 +105,13 @@ class Chat extends Component {
         .on('error', console.error);
     }
 
+    async listenToFetchAllMsg() {
+        var binded = this.didReceiveAllMsgBinded.bind(this)
+        this.state.chatContract.events.messagesFetchedEvent({})
+        .on('data', binded)
+        .on('error', console.error);
+    }
+
     // ------- handlers ------
     async didReceiveMessageBinded(event){
         const message = event.returnValues.message
@@ -126,7 +135,25 @@ class Chat extends Component {
         await this.updateUIData()
     }
 
-    didReceiveMessage(message, isResponse) {
+    async didReceiveAllMsgBinded(event){
+        let allMsg = []
+
+        event.returnValues.messages.forEach((message) => {
+            allMsg.push({
+                msg: message['message'],
+                response: message['from'] === this.state.account
+            })
+        })
+        if (allMsg.length === 0)
+            allMsg = this.state.fixedChats
+
+        this.setState({
+            chats: allMsg
+        })
+        await this.updateUIData()
+    }
+
+    async didReceiveMessage(message, isResponse) {
         let chats = this.state.chats
         chats.push(
             {
@@ -144,7 +171,7 @@ class Chat extends Component {
         const didSendEther = await this.sendEtherIfAsked()
         
         if (!didSendEther) {
-            await this.state.chatContract.methods.sendMsg(this.state.otherAccount, message).send({ from: this.state.account })
+            await this.state.chatContract.methods.sendMsg(this.state.otherAccount, message).send({ from: this.state.account, gas: 1500000 })
         }
     }
 
@@ -164,9 +191,13 @@ class Chat extends Component {
         return false
     }
 
+    async fetchAllMsg() {
+        await this.state.chatContract.methods.getAllMsg(this.state.otherAccount).send({ from: this.state.account })
+    }
+
     // ------- UI state updaters ------
     async updateUIData() {
-        await this.wait()
+        // await this.wait()
         await this.updateNbTransactions()
         await this.updateBalances()
         await this.updateBlocks()
@@ -192,11 +223,12 @@ class Chat extends Component {
                 chats: this.state.fixedChats
             })
         }
+        await this.wait()
+        await this.fetchAllMsg()
         await this.updateUIData()
     }
 
     async updateNbTransactions() {
-        console.log(this.state.account)
         let accountNbTransactions = await window.web3.eth.getTransactionCount(this.state.account)
         let otherAccountNbTransactions = await window.web3.eth.getTransactionCount(this.state.otherAccount)
         this.setState({
