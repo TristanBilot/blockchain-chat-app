@@ -36,6 +36,10 @@ class Chat extends Component {
             otherAccountNbTransactions: 0,
             accountBalance: 0,
             otherAccountBalance: 0,
+            lastGas: 0,
+            blockHash: '',
+            didATransaction: false,
+            isLastTransactionSuccess: false,
         }
     }
 
@@ -107,16 +111,17 @@ class Chat extends Component {
         if (event.returnValues.to === this.state.account){
             this.didReceiveMessage(message, false)
         }
+        this.setState({
+            didATransaction: false,
+        })
         await this.updateUIData()
     }
 
     async didReceiveEtherBinded(event){
-        if (event.returnValues.sent === false){
-            console.log('error')
-        }
-        else {
-            console.log('success')
-        }
+        this.setState({
+            didATransaction: true,
+            isLastTransactionSuccess: event.returnValues.success
+        })
         await this.updateUIData()
     }
 
@@ -144,7 +149,7 @@ class Chat extends Component {
 
     async sendEtherIfAsked() {
         let splitted = this.state.inputValue.split(':')
-        if (splitted.length != 2)
+        if (splitted.length !== 2)
             return false
 
         if (splitted[0] == "send_ether" && this.isNumeric(splitted[1])) {
@@ -163,6 +168,7 @@ class Chat extends Component {
         this.updateNbTransactions()
         this.updateBalances()
         this.updateBlocks()
+        this.updateLastGas()
     }
 
     updateInputValue(evt) {
@@ -210,11 +216,19 @@ class Chat extends Component {
         })
     }
 
-    isNumeric(str) {
-        if (typeof str != "string") return false
-        return !isNaN(str) &&
-               !isNaN(parseFloat(str))
-      }
+    async updateLastGas() {
+        const lastBlockNumber = await window.web3.eth.getBlockNumber();
+        let block = await window.web3.eth.getBlock(lastBlockNumber);
+        block = await window.web3.eth.getBlock(lastBlockNumber);
+
+        const lastTransaction = block.transactions[block.transactions.length - 1];
+        const transaction = await window.web3.eth.getTransaction(lastTransaction);
+
+        this.setState({
+            blockHash: transaction["blockHash"],
+            lastGas: transaction["gas"],
+        })
+    }
 
     // ------- UI ------
     getMessagesAsDivs() {
@@ -245,6 +259,24 @@ class Chat extends Component {
         return addresses
     }
 
+    displayEtherTransactionStatus() {
+        if (!this.state.didATransaction)
+            return
+
+        if (this.state.isLastTransactionSuccess)
+            return <div style={{color: "green"}}>ETH transaction succeeded!</div>
+        else
+            return <div>error</div>
+    }
+
+    // ------- helpers ------
+    isNumeric(str) {
+        if (typeof str != "string") return false
+        return !isNaN(str) &&
+               !isNaN(parseFloat(str))
+      }
+
+    // ------- rendering ------
     render() {
         return (
         <body>
@@ -279,6 +311,7 @@ class Chat extends Component {
                     <div class="col-5 right-block">
                         <h3>Blockchain state</h3>
                         <p>Number of blocks: { this.state.nbBlocks }</p>
+                        <p>Last transaction gas: { this.state.lastGas }</p>
                         <div class="sender-block blockchain-block">
                             <p><b>Sender address:</b></p>
                             <p>{ this.state.account }</p>
@@ -290,6 +323,10 @@ class Chat extends Component {
                             <p>{ this.state.otherAccount }</p>
                             <p>Number of transactions: { this.state.otherAccountNbTransactions }</p>
                             <p>Wallet balance: { this.state.otherAccountBalance } ETH</p>
+                        </div>
+
+                        <div class="alert-transac">
+                            { this.displayEtherTransactionStatus() }
                         </div>
                         
                     </div>
