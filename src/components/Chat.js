@@ -26,6 +26,7 @@ class Chat extends Component {
             }
         ]
         this.state = {
+            fixedChats: [...chats],
             chats: chats,
             inputValue: '',
             accounts: [],
@@ -181,12 +182,14 @@ class Chat extends Component {
     async updateAddressSelect(newValue, isOtherAccount) {
         if (isOtherAccount) {
             this.setState({
-                otherAccount: newValue
+                otherAccount: newValue,
+                chats: this.state.fixedChats
             })
         }
         else {
             this.setState({
-                account: newValue
+                account: newValue,
+                chats: this.state.fixedChats
             })
         }
         await this.updateUIData()
