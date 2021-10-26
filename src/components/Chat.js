@@ -165,10 +165,11 @@ class Chat extends Component {
 
     // ------- UI state updaters ------
     async updateUIData() {
-        this.updateNbTransactions()
-        this.updateBalances()
-        this.updateBlocks()
-        this.updateLastGas()
+        await this.wait()
+        await this.updateNbTransactions()
+        await this.updateBalances()
+        await this.updateBlocks()
+        await this.updateLastGas()
     }
 
     updateInputValue(evt) {
@@ -177,7 +178,7 @@ class Chat extends Component {
         });
       }
 
-    updateAddressSelect(newValue, isOtherAccount) {
+    async updateAddressSelect(newValue, isOtherAccount) {
         if (isOtherAccount) {
             this.setState({
                 otherAccount: newValue
@@ -188,10 +189,11 @@ class Chat extends Component {
                 account: newValue
             })
         }
-        this.updateUIData()
+        await this.updateUIData()
     }
 
     async updateNbTransactions() {
+        console.log(this.state.account)
         let accountNbTransactions = await window.web3.eth.getTransactionCount(this.state.account)
         let otherAccountNbTransactions = await window.web3.eth.getTransactionCount(this.state.otherAccount)
         this.setState({
@@ -275,6 +277,12 @@ class Chat extends Component {
         return !isNaN(str) &&
                !isNaN(parseFloat(str))
       }
+
+    async wait() {
+        const noop = ()=>{};
+        for (var i = 0; i < 10000; i++)
+            noop()
+    }
 
     // ------- rendering ------
     render() {
