@@ -10,6 +10,9 @@ class Chat extends Component {
         await this.loadWeb3()
         await this.loadBlockchainData()
         await this.listenToMessages()
+        await this.updateNbTransactions()
+        await this.updateBalances()
+        await this.getBlocks()
       }
 
     constructor(props) {
@@ -29,7 +32,11 @@ class Chat extends Component {
             inputValue: '',
             accounts: [],
             account: '',
-            otherAccount: ''
+            otherAccount: '',
+            accountNbTransactions: 0,
+            otherAccountNbTransactions: 0,
+            accountBalance: 0,
+            otherAccountBalance: 0,
         }
     }
 
@@ -105,6 +112,7 @@ class Chat extends Component {
         if (event.returnValues.to === this.state.account){
             this.didReceiveMessage(message, false)
         }
+        await this.updateUIData()
     }
 
     getMessagesAsDivs() {
@@ -156,36 +164,108 @@ class Chat extends Component {
                 account: newValue
             })
         }
+        this.updateUIData()
+    }
+
+    async updateUIData() {
+        this.updateNbTransactions()
+        this.updateBalances()
+    }
+
+    async updateNbTransactions() {
+        let accountNbTransactions = await window.web3.eth.getTransactionCount(this.state.account)
+        let otherAccountNbTransactions = await window.web3.eth.getTransactionCount(this.state.otherAccount)
+        this.setState({
+            accountNbTransactions: accountNbTransactions,
+            otherAccountNbTransactions: otherAccountNbTransactions
+        })
+    }
+
+    async updateBalances() {
+        let accountBalance = await window.web3.eth.getBalance(this.state.account)
+        let otherAccountBalance = await window.web3.eth.getBalance(this.state.otherAccount)
+        this.setState({
+            accountBalance: window.web3.utils.fromWei(accountBalance, 'ether'),
+            otherAccountBalance: window.web3.utils.fromWei(otherAccountBalance, 'ether')
+        })
+    }
+
+    callback(e, f) {
+        console.log(f)
+    }
+
+    async getBlocks() {
+        const latest = await window.web3.eth.getBlockNumber()
+        const batch = new window.web3.eth.BatchRequest()
+
+        for (var i = 0; i < latest; i++) {
+            batch.add(
+                window.web3.eth.getBlock.request(i, this.callback)
+            )
+        }
+        batch.execute()
+        // console.log(latest)
+        // const blockNumbers = range(latest - n, latest + 1, 1)
+        // const batch = new window.web3.eth.BatchRequest()
+
+        // blockNumbers.forEach((blockNumber) => {
+        // batch.add(
+        //     window.web3.eth.getBlock.request(blockNumber, storeLocalCopy)
+        // )
+        // })
+
+        // batch.execute()
     }
 
     render() {
         return (
         <body>
-            <div class="container">
-                <section class="chat">
-                    <div class="header-chat">
-                        <div class="left">
-                            <img src={mainLogo} class="arrow"/>
-                            <select class="custom-select" onChange={e => this.updateAddressSelect(e.target.value, false)} >
-                                { this.getToggleAdresses(false) }
-                            </select>     
-                        </div>
-                        <div class="right">
-                            <select class="custom-select" onChange={e => this.updateAddressSelect(e.target.value, true)} >
-                                { this.getToggleAdresses(true) }
-                            </select>  
+            <div class="block-container">
+                <div class="row">
+                    <div class="col-7 left-block">
+                        <section class="chat">
+                            <div class="header-chat">
+                                <div class="left">
+                                    <img src={mainLogo} class="arrow"/>
+                                    <select class="custom-select" onChange={e => this.updateAddressSelect(e.target.value, false)} >
+                                        { this.getToggleAdresses(false) }
+                                    </select>     
+                                </div>
+                                <div class="right">
+                                    <select class="custom-select" onChange={e => this.updateAddressSelect(e.target.value, true)} >
+                                        { this.getToggleAdresses(true) }
+                                    </select>  
+                                </div>
+                            </div>
+                            <div class="messages-chat">
+                            { this.getMessagesAsDivs() }
+                            </div>
+                        </section>
+                        <div class="footer-chat">
+                            <i class="icon fa fa-smile-o clickable" style={{fontSize: "25pt"}} aria-hidden="true"></i>
+                            <input value={this.state.inputValue} onChange={evt => this.updateInputValue(evt)} type="text" class="write-message" placeholder="Type your message here"></input>
+                            <i class="icon send fa fa-paper-plane-o clickable" aria-hidden="true"></i>
+                            <button class="btn btn-success send-btn" onClick={() => this.didSendMessage(this.state.inputValue)}>Send</button>
                         </div>
                     </div>
-                    <div class="messages-chat">
-                    { this.getMessagesAsDivs() }
+                    <div class="col-5 right-block">
+                        <h3>Blockchain state</h3>
+                        <div class="sender-block blockchain-block">
+                            <p><b>Sender address:</b></p>
+                            <p>{ this.state.account }</p>
+                            <p>Number of transactions: { this.state.accountNbTransactions }</p>
+                            <p>Wallet balance: { this.state.accountBalance } ETH</p>
+                        </div>
+                        <div class="recip-block blockchain-block">
+                            <p><b>Recipient address:</b></p>
+                            <p>{ this.state.otherAccount }</p>
+                            <p>Number of transactions: { this.state.otherAccountNbTransactions }</p>
+                            <p>Wallet balance: { this.state.otherAccountBalance } ETH</p>
+                        </div>
+                        
                     </div>
-                </section>
-                <div class="footer-chat">
-                    <i class="icon fa fa-smile-o clickable" style={{fontSize: "25pt"}} aria-hidden="true"></i>
-                    <input value={this.state.inputValue} onChange={evt => this.updateInputValue(evt)} type="text" class="write-message" placeholder="Type your message here"></input>
-                    <i class="icon send fa fa-paper-plane-o clickable" aria-hidden="true"></i>
-                    <button class="btn btn-success send-btn" onClick={() => this.didSendMessage(this.state.inputValue)}>Send</button>
                 </div>
+                
                 </div>
         </body>)
     }
