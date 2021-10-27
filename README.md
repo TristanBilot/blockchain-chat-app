@@ -1,5 +1,5 @@
 # blockchain-chat-app
-Simple blockchain app for messaging and ether sending between Ganache addresses.
+Simple Ethereum blockchain app for messaging and ether sending between Ganache addresses.
 
 ## Stack
 | <img src="img/truffle.png" width="50%"> | <img src="img/metamask.png" width="50%">   | <img src="img/ganache.png" width="50%"> |
