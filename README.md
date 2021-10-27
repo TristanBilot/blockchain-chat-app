@@ -8,6 +8,13 @@ Simple blockchain app for messaging and ether sending between Ganache addresses.
 ## UI    
 <img src="img/demo.png"/>
 
+## Deploy
+You first need to run Ganache on localhost:7545, install metamask in the browser, install dependencies and finally fire the react server.
+```
+npm install
+npm run start
+```
+
 ## Features
 * connect to all the available wallet addresses available in Ganache
 * send messages between these addresses
