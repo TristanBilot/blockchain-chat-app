@@ -12,6 +12,7 @@ contract ChatApp {
 
     event messageSentEvent(address indexed from, address indexed to, string message);
     event etherSentEvent(address indexed from, address indexed to, bool success);
+    event etherAskEvent(address indexed from, address indexed to, string value);
     event messagesFetchedEvent(address indexed from, address indexed to, Message[] messages);
 
     function sendMsg(address to, string memory message) public {
@@ -25,6 +26,10 @@ contract ChatApp {
         emit etherSentEvent(msg.sender, to, sent);
 
         require(sent, "Failed to send Ether");
+    }
+
+    function askEther(address to, string memory value) public {
+        emit etherAskEvent(msg.sender, to, value);
     }
 
     function getAllMsg(address to) public {

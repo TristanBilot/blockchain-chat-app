@@ -7,7 +7,7 @@ body {
     padding:0;
     background-color: #FFF; 
     box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
-    height: 670px;
+    min-height: 670px;
   }
 
   
@@ -222,4 +222,8 @@ body {
 
 .recip-block {
     background-color: #E2F0D9;
+}
+
+.didAskContainer {
+  margin-top: 15px;
 }
