@@ -214,6 +214,7 @@ body {
     border-radius: 10px;
     margin-right: 25px;
     margin-top: 30px;
+    overflow: scroll;
 }
 
 .sender-block {

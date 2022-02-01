@@ -198,7 +198,8 @@ class Chat extends Component {
     }
 
     async didSendMessage(message) {
-        this.state.chatContract.methods.sendMsg(this.state.otherAccount, message).send({ from: this.state.account, gas: 1500000 })
+        this.state.chatContract.methods.sendMsg(this.state.otherAccount, message)
+            .send({ from: this.state.account, gas: 1500000 })
         await this.sendEtherIfAsked()
         await this.askEtherIfAsked()
     }
@@ -209,7 +210,7 @@ class Chat extends Component {
             return false
 
         if (splitted[0] == "send_ether" && this.isNumeric(splitted[1])) {
-            var asWei = parseFloat(splitted[1]) * 1e18
+            let asWei = parseFloat(splitted[1]) * 1e18
             this.state.chatContract.methods.sendEther(this.state.otherAccount).send({
                 from: this.state.account,
                 value: asWei
