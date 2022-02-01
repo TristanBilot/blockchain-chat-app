@@ -227,4 +227,5 @@ body {
 
 .didAskContainer {
   margin-top: 15px;
+  overflow: scroll;
 }

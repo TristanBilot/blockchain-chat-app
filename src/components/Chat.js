@@ -146,6 +146,7 @@ class Chat extends Component {
             didARequest: false,
             isLastTransactionSuccess: event.returnValues.success
         })
+        // await this.wait()
         await this.updateUIData()
     }
 
